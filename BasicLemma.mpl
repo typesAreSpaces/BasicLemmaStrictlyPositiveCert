@@ -1,6 +1,7 @@
 $define ENABLE_DEBUGGING false
 $define ENABLE_VERIFICATION false
 $define LOG_TIME
+$define BUMP_FINDN 1/10
 
 $define DEBUG_EXIT lprint(">> Debugging, getting out"); return 0
 $define DEBUG(F, L, y, x) if (y) then lprint(">> Debugging file ", F, " at line ", L); x; end if
@@ -123,21 +124,27 @@ $endif
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findN", 0)
 $endif
-    local N := 1;
-
-    local lowerbound_L1 := minPolyOverBasis(s + N * g, [op(basis), -s], x);
-        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> lowerbound_L1", lowerbound_L1));
-        while lowerbound_L1 <= 0 do
-            N := N + 1;
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching N", N));
-            lowerbound_L1 := minPolyOverBasis(s + N * g, [op(basis), -s], x);
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current lowerbound_L1", lowerbound_L1));
-        end do;
-        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
+    local min_s, locations, N;
+        # This branch means that s is already strictly positive over S
+        if evalb(SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
 $ifdef LOG_TIME
-        END_LOG_TIME("findN",0)
+            END_LOG_TIME("findN",0)
 $endif
-        return N;
+            return 0;
+        else
+            min_s := minPolyOverBasis(s, basis, x);
+            locations := [RealDomain:-solve](s = min_s);
+            # If locations is empty then the equation `s = min_s` is trivial
+            if evalb(locations = []) then
+                N := ceil(-min_s/minPolyOverBasis(g, basis, x)+BUMP_FINDN);
+            else
+                N := ceil(-min_s/min(map(g, locations))+BUMP_FINDN);
+            end if;
+$ifdef LOG_TIME
+            END_LOG_TIME("findN",0)
+$endif
+            return N;
+        end if;
     end proc;
 
 # Find positive rational eps so small
