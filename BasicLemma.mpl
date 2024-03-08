@@ -1,6 +1,6 @@
 $define ENABLE_DEBUGGING false
 $define ENABLE_VERIFICATION false
-#$define LOG_TIME
+$define LOG_TIME
 
 $define DEBUG_EXIT lprint(">> Debugging, getting out"); return 0
 $define DEBUG(F, L, y, x) if (y) then lprint(">> Debugging file ", F, " at line ", L); x; end if
@@ -265,10 +265,10 @@ $endif
     local sigma := s1 - r*g;
     local tau := t1 + r*f;
 
-        return sigma, tau;
 $ifdef LOG_TIME
         END_LOG_TIME("lift",0)
 $endif
+        return sigma, tau;
     end proc;
 
 end module;
