@@ -1,119 +1,238 @@
+$define ENABLE_VERIFICATION false
+$define ENABLE_DEBUGGING false
+$define LOG_TIME false
+
+$define DEBUG_EXIT lprint(">> Debugging, getting out"); return 0
+$define DEBUG(F, L, y, x) if (y) then lprint(">> Debugging file ", F, " at line ", L); x; end if
+
+$define START_LOG_TIME(X, S) stack_level:=stack_level+1;fd := Open("log_time.txt", append);local _log_time_S := time();WriteString(fd, cat("Start: ", X, " ", convert(stack_level, string), "\n"));Close(fd);
+$define END_LOG_TIME(X, S) fd := Open("log_time.txt", append);WriteString(fd, cat("End: ", X, " ", convert(stack_level, string), "\nTime: ", convert(time() - _log_time_S, string), "\n"));Close(fd);stack_level:=stack_level-1;
+$define INIT_START_LOG_TIME(X, S) local fd;START_LOG_TIME(X, S)
+
 with(Algebraic, ExtendedEuclideanAlgorithm);
 with(SolveTools, SemiAlgebraic);
-with(RegularChains, SemiAlgebraicSetTools, PolynomialRing);
-with(RegularChains,  RealTriangularize);
-with(SemiAlgebraicSetTools, IsContained);
-with(Optimization, Maximize, Minimize);
 
 BasicLemma := module() option package;
 
-export lift;
+local stack_level := 0;
 
-lift := proc(f, g, basis, x)
+local bound_info;
+local minPolyOverBasis;
 
-#local Error_Non_Neg := 0;
-local Error_Non_Neg := 1/10000;
+local findN;
+local findEps;
+local findK;
 
-ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
+    bound_info := proc(x, bound, eps)
+$ifdef LOG_TIME
+        INIT_START_LOG_TIME("bound_info",0)
+$endif
+    local i1, i2, j1, j2;
+        # This is a bounded bounduality
+        if(nops(bound) = 2) then
+            i1 := simplify(op(bound[1])[1]);
+            i2 := simplify(op(bound[1])[2]);
+            j1 := simplify(op(bound[2])[1]);
+            j2 := simplify(op(bound[2])[2]);
+            if evalb(i1 = x) then
+                if evalb(j1 = x) then
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [min(i2, j2)+eps, max(i2, j2)-eps];
+                else
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [min(i2, j1)+eps, max(i2, j1)-eps];
+                end if;
+            else
+                if evalb(j1 = x) then
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [min(i1, j2)+eps, max(i1, j2)-eps];
+                else
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [min(i1, j1)+eps, max(i1, j1)-eps];
+                end if;
+            end if;
+            # This is an equality or unbounded bounduality
+        else
+            i1 := simplify(op(bound[1])[1]);
+            j1 := simplify(op(bound[1])[2]);
+            if type(bound[1], `=`) then
+                if evalb(i1 = x) then
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [j1, j1];
+                else
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [i1, i1];
+                end if;
+            end if;
+            if type(bound[1], `<=`) then
+                if evalb(i1 = x) then
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [-infinity, j1-eps];
+                else
+$ifdef LOG_TIME
+                    END_LOG_TIME("bound_info",0)
+$endif
+                    return [i1+eps, infinity];
+                end if;
+            end if;
+        end if;
+    end proc;
 
-local R := PolynomialRing([x]);
-local _C := map(poly -> poly >= 0, basis);
+    minPolyOverBasis := proc(f, basis, x);
+    local lowerbound, upperbound, interval;
+        return min(
+            map(proc(bound)
+                    interval := bound_info(x, bound, 0);
+                    #lowerbound := convert(evalf(interval[1]), rational);
+                    #upperbound := convert(evalf(interval[2]), rational);
+                    lowerbound := interval[1];
+                    upperbound := interval[2];
+                    simplify(minimize(f, x = lowerbound .. upperbound))
+                end proc,
+                SemiAlgebraic(map(poly -> poly >= 0, basis), [x])))
+    end proc;
 
 # Find N such that
-# [X] s + N g > 0 over L1
-#local L1 := SemiAlgebraic([op(_C), s <= 0], [x]);
-local N := 1;
+# - s + N g > 0 over L1 := SemiAlgebraic([op(S), s <= 0], [x]);
+    findN := proc(s, f, t, g, basis)
+    local N := 1;
 
-local lowerbound_L1 := Minimize(s + N*g, [op(_C), s <= 0])[1];
-while lowerbound_L1 <= 0 do
-  N := 2*N;
-  lowerbound_L1 := Minimize(s + N*g, [op(_C), s <= 0])[1];
-end do;
-
-local s1 := s + N*g;
-local t1 := t - N*f;
-
-# Find positive rational d \in R[x] such that
-# [X] d*f*g < 1 on C
-
-local d := 1/(ceil(Maximize(f*g, _C)[1])+1);
+    local lowerbound_L1 := minPolyOverBasis(s + N * g, [op(basis), -s], x);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> lowerbound_L1", lowerbound_L1));
+        while lowerbound_L1 <= 0 do
+            N := N + 1;
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current N", N));
+            lowerbound_L1 := minPolyOverBasis(s + N * g, [op(basis), -s], x);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> lowerbound_L1", lowerbound_L1));
+        end do;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current N", N));
+        return N;
+    end proc;
 
 # Find positive rational eps so small
-# such that 
-# [] f > 0
-# [] 1 > eps*d*f
-# [] eps*t1 + s1*f > 0
-# over L2 := { p \in C | g(p) \leq eps }
+# such that
+# - f > 0
+# - 1 > eps*delta*f
+# - eps*t1 + s1*f > 0
+# over L2 := {}
+    findEps := proc(delta, s1, f, t1, g, basis)
+    local eps, top, bot, curr;
+    local condition1, condition2, condition3;
+    local _basis := map(poly -> poly >= 0, basis);
+        top := -minPolyOverBasis(-g, basis, x);
+        bot := 0;
+        curr := (top+bot)/2;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> max bound for eps", top));
+        condition1 := SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
+        condition2 := SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
+        condition3 := SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
+        while evalb(condition1 and condition2 and condition3) = false do
+            top := curr;
+            curr := (top + bot)/2;
+            condition1 := SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
+            condition2 := SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
+            condition3 := SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> searching eps", curr));
+        end do;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
+        return curr;
+        #return 13/14;
+    end proc;
 
-local upperbound_Eps := min(Maximize(g, _C)[1], 1/Maximize(d*f, _C)[1]);
-#print("upperbound_Eps", upperbound_Eps);
-
-local f_lowerbound := Minimize(f, [op(_C), g <= upperbound_Eps])[1];
-local comb_lowerbound := Minimize(upperbound_Eps*t1 + s1*f, [op(_C), g <= upperbound_Eps])[1];
-
-#while f_lowerbound <= Error_Non_Neg or comb_lowerbound <= Error_Non_Neg do
-  #upperbound_Eps := upperbound_Eps/2;
-  #f_lowerbound := Minimize(f, [op(_C), g <= upperbound_Eps])[1];
-  #comb_lowerbound := Minimize(upperbound_Eps*t1 + s1*f, [op(_C), g <= upperbound_Eps])[1];
-  #print("Search upperbound_Eps", upperbound_Eps);
-#end do;
-##print("Done searching upperbound_Eps", f_lowerbound, comb_lowerbound);
-
-#local eps := convert(upperbound_Eps, rational);
-local eps := 13/14;
-print("eps", eps);
-
-# TODO
 # Find k so large that
-# [] eps*t1 + s1*f > s1*f*(1-eps*d*f)^k over the set { p \in C | g(p) \leq eps } =: L2
-# |
-# |
-# |-> [] log(eps*t1 + s1*f) > log(s1) + log(f) + k log (1-eps*d*f) over the set L2
-# |-> [] log(eps*t1 + s1*f) - log(s1) - log(f) > k log (1-eps*d*f) 
-# we know 1 > eps*d*f over L2 so 1 > 1 - eps*d*f > 0 => log(1-eps*d*f) < 0 over L2
-# |-> [] (log(eps*t1 + s1*f) - log(s1) - log(f))/log (1-eps*d*f) < k
+# - eps*t1 + s1*f > s1*f*(1-eps*delta*f)^k over the set { p \in C | g(p) \leq eps } =: L2
+# - 1 > s1*f*(1-eps*delta*f)^k over the set { p \in C | g(p) \geq eps } =: L3
+    findK := proc(eps, delta, s1, f, t1, g, basis, x)
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> delta", delta));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> f", f));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s1", s1));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> t1", t1));
+        #local k := 1000; # Is this too large?
+    local k := 0;
+    local k_condition_1, k_condition_2;
+        k_condition_1 := SemiAlgebraic(
+            [
+                op(map(poly -> poly >= 0, basis)),
+                g <= eps,
+                eps*t1 + s1*f <= s1*f*(1-eps*delta*f)^k
+            ], [x]) = [];
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> k_condition_1", evalb(k_condition_1)));
 
-local k := 1000;
+        while evalb(k_condition_1) = false do
+            k := k+1;
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at first condition", k));
+            k_condition_1 := SemiAlgebraic(
+                [
+                    op(map(poly -> poly >= 0, basis)),
+                    g <= eps,
+                    eps*t1 + s1*f <= s1*f*(1-eps*delta*f)^k
+                ], [x]) = [];
+        end do;
 
-local L2 := RealTriangularize([op(_C), g <= eps], R);
-local k_condition_1 := RealTriangularize([op(_C), g <= eps, eps*t1 + s1*f > s1*f*(1-eps*d*f)^k ], R);
-lprint("check ", [op(_C), g <= eps, eps*t1 + s1*f > s1*f*(1-eps*d*f)^k]);
+        k_condition_2 := SemiAlgebraic(
+            [
+                op(map(poly -> poly >= 0, basis)),
+                g >= eps,
+                1 <= s1*f*(1-eps*delta*f)^k
+            ], [x]) = [];
 
-while not IsContained(L2, k_condition_1, R) do
-  k:=k+1;
-  print("Searching k", k);
-end do;
+        while evalb(k_condition_2) = false do
+            k := k+1;
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at second condition", k));
+            k_condition_2 := SemiAlgebraic(
+                [
+                    op(map(poly -> poly >= 0, basis)),
+                    g >= eps,
+                    1 <= s1*f*(1-eps*delta*f)^k
+                ], [x]) = [];
+        end do;
 
-# [] 1 > s1*f*(1-eps*d*f)^k over the set { p \in C | g(p) \geq eps }
-# |
-# |
-# |-> [] 1 > s1*f*(1-eps*d*f)^k over the set { p \in C | g(p) \qeq eps } =: L3
-# |-> [] 0 > log(s1) + log(f) + k log(1-eps*d*f) over the set L3
-# |-> [] -(log(s1) + log(f))/log(1-eps*d*f) ? k  over the set L3
+        return k;
+    end proc;
 
-local L3 := RealTriangularize([op(_C), g >= eps], R);
-local k_condition_2 := RealTriangularize([op(_C), g >= eps, eps*t1 + s1*f > s1*f*(1-eps*d*f)^k ], R);
+export lift;
 
-# So (?) k = max((log(eps*t1 + s1*f) - log(s1) - log(f))/log (1-eps*d*f) over L2, -(log(s1) + log(f))/log(1-eps*d*f) over L3)
+    lift := proc(f, g, basis, x)
 
-#local ok := SemiAlgebraic([op(_C), g <= eps], [x]);
-#print("hmm", ok);
+        ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
 
-#map(
-  #proc(interval) 
-    #print("hmm 1", Maximize(
-      #(log(eps*t1 + s1*f) - log(s1*f))/log(1-eps*d*f), 
-      #interval));
-  #end proc, ok);
+    local N := findN(s, f, t, g, basis);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 
-#Maximize((log(eps*t1 + s1*f) - log(s1*f))/log(1-eps*d*f), [op(_C), g <= eps]);
-#local ok1 := Maximize(log(eps*t1 + s1*f), [op(_C), g <= eps])[1];
-#local ok2 := Minimize(log(s1*f*(1-eps*d*f)), [op(_C), g <= eps])[1];
-#print("wot 1", ok1);
-#print("wot 2", ok2);
-#print("wot 3", -ok1/ok2);
+    local s1 := s + N*g;
+    local t1 := t - N*f;
 
-return s, t;
-end proc;
+# Find positive rational d \in R[x] such that
+# d*f*g < 1 on C
+    local delta := -9/10/minPolyOverBasis(-f*g, basis, x);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> delta", delta));
+
+    local eps := findEps(delta, s1, f, t1, g, basis);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
+    local k := findK(eps, delta, s1, f, t1, g, basis, x);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> k", k));
+
+    local r := s1 * delta * f * sum((1 - delta*f*g)^i, i= 0 .. (k - 1));
+    local sigma := s1 - r*g;
+    local tau := t1 + r*f;
+
+        return sigma, tau;
+    end proc;
 
 end module;
