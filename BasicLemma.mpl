@@ -1,6 +1,6 @@
 $define ENABLE_DEBUGGING false
 $define ENABLE_VERIFICATION false
-$define LOG_TIME
+#$define LOG_TIME
 
 $define DEBUG_EXIT lprint(">> Debugging, getting out"); return 0
 $define DEBUG(F, L, y, x) if (y) then lprint(">> Debugging file ", F, " at line ", L); x; end if
