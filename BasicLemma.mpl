@@ -240,7 +240,7 @@ $endif
 
     lift := proc(f, g, basis, x)
 $ifdef LOG_TIME
-    INIT_START_LOG_TIME("lift",0)
+        INIT_START_LOG_TIME("lift",0)
 $endif
 
         ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
