@@ -6,14 +6,9 @@ $define BUMP_FINDN 1/10
 $define DEBUG_EXIT lprint(">> Debugging, getting out"); return 0
 $define DEBUG(F, L, y, x) if (y) then lprint(">> Debugging file ", F, " at line ", L); x; end if
 
-$define START_LOG_TIME(X, S) stack_level:=stack_level+1;fd := Open("log_time.txt", append);local _log_time_S := time();WriteString(fd, cat("Start: ", X, " ", convert(stack_level, string), "\n"));Close(fd);
-$define END_LOG_TIME(X, S) fd := Open("log_time.txt", append);WriteString(fd, cat("End: ", X, " ", convert(stack_level, string), "\nTime: ", convert(time() - _log_time_S, string), "\n"));Close(fd);stack_level:=stack_level-1;
+$define START_LOG_TIME(X, S) stack_level:=stack_level+1;fd := FileTools:-Text:-Open("log_time.txt", append);local _log_time_S := time();FileTools:-Text:-WriteString(fd, cat("Start: ", X, " ", convert(stack_level, string), "\n"));FileTools:-Text:-Close(fd);
+$define END_LOG_TIME(X, S) fd := FileTools:-Text:-Open("log_time.txt", append);FileTools:-Text:-WriteString(fd, cat("End: ", X, " ", convert(stack_level, string), "\nTime: ", convert(time() - _log_time_S, string), "\n"));FileTools:-Text:-Close(fd);stack_level:=stack_level-1;
 $define INIT_START_LOG_TIME(X, S) local fd;START_LOG_TIME(X, S)
-
-with(Algebraic, ExtendedEuclideanAlgorithm);
-with(SolveTools, SemiAlgebraic);
-with(FileTools, Text);
-with(Text, Open, Close, WriteString);
 
 BasicLemma := module() option package;
 
@@ -111,7 +106,7 @@ $endif
                     upperbound := interval[2];
                     simplify(minimize(f, x = lowerbound .. upperbound))
                 end proc,
-                SemiAlgebraic(map(poly -> poly >= 0, basis), [x])));
+                SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis), [x])));
 $ifdef LOG_TIME
         END_LOG_TIME("minPolyOverBasis",0)
 $endif
@@ -126,7 +121,7 @@ $ifdef LOG_TIME
 $endif
     local min_s, locations, N;
         # This branch means that s is already strictly positive over S
-        if evalb(SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
+        if evalb(SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
 $ifdef LOG_TIME
             END_LOG_TIME("findN",0)
 $endif
@@ -164,15 +159,15 @@ $endif
         bot := 0;
         curr := (top+bot)/2;
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Max bound for eps", top));
-        condition1 := SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
-        condition2 := SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
-        condition3 := SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
+        condition1 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
+        condition2 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
+        condition3 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
         while evalb(condition1 and condition2 and condition3) = false do
             top := curr;
             curr := (top + bot)/2;
-            condition1 := SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
-            condition2 := SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
-            condition3 := SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
+            condition1 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, f <= 0], [x]) = [];
+            condition2 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, 1 <= curr*delta*f], [x]) = [];
+            condition3 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching eps", curr));
         end do;
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
@@ -194,7 +189,7 @@ $endif
 $ifdef LOG_TIME
         START_LOG_TIME("findK::condition_1",1)
 $endif
-        k_condition_1 := SemiAlgebraic(
+        k_condition_1 := SolveTools:-SemiAlgebraic(
             [
                 op(map(poly -> poly >= 0, basis)),
                 g <= eps,
@@ -204,7 +199,7 @@ $endif
         while evalb(k_condition_1) = false do
             k := k+1;
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at first condition", k));
-            k_condition_1 := SemiAlgebraic(
+            k_condition_1 := SolveTools:-SemiAlgebraic(
                 [
                     op(map(poly -> poly >= 0, basis)),
                     g <= eps,
@@ -218,7 +213,7 @@ $endif
 $ifdef LOG_TIME
         START_LOG_TIME("findK::condition_2",2)
 $endif
-        k_condition_2 := SemiAlgebraic(
+        k_condition_2 := SolveTools:-SemiAlgebraic(
             [
                 op(map(poly -> poly >= 0, basis)),
                 g >= eps,
@@ -228,7 +223,7 @@ $endif
         while evalb(k_condition_2) = false do
             k := k+1;
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at second condition", k));
-            k_condition_2 := SemiAlgebraic(
+            k_condition_2 := SolveTools:-SemiAlgebraic(
                 [
                     op(map(poly -> poly >= 0, basis)),
                     g >= eps,
@@ -250,7 +245,7 @@ $ifdef LOG_TIME
         INIT_START_LOG_TIME("lift",0)
 $endif
 
-        ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
+        Algebraic:-ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
 
     local N := findN(s, f, t, g, basis);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
