@@ -1,4 +1,4 @@
-$define ENABLE_DEBUGGING false
+$define ENABLE_DEBUGGING true
 $define ENABLE_VERIFICATION false
 $define LOG_TIME
 $define BUMP_FINDN 1/10
@@ -14,14 +14,71 @@ BasicLemma := module() option package;
 
 local stack_level := -1;
 
+local computeMin;
 local bound_info;
-local minPolyOverBasis;
 
 local findN;
 local findEps;
 local findK;
 
 export lift;
+
+# Compute minimum of polynomial poly
+# over semialgebraic set S
+# S is a finite list of intervals
+# poly is a polynomial
+    computeMin := proc(S, poly, x)
+$ifdef LOG_TIME
+        INIT_START_LOG_TIME("computeMin",0)
+$endif
+    local roots_poly := map(sol -> op(sol)[2], RootFinding:-Isolate(diff(poly, x)));
+    local num_roots := nops(roots_poly);
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> poly", poly));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> roots_poly", roots_poly));
+    local curr_point;
+    local curr_min := infinity, arg_min;
+    local i, j := 1;
+    local interval;
+        for i from 1 to nops(S) do
+            interval := bound_info(x, S[i], 0);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current interval", interval));
+
+            curr_point := subs(x=interval[1], poly);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point", curr_point));
+            if evalf(curr_point <= curr_min) then
+                curr_min := curr_point;
+                arg_min := interval[1];
+            end if;
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min", curr_min));
+
+            curr_point := subs(x=interval[2], poly);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point", curr_point));
+            if evalf(curr_point <= curr_min) then
+                curr_min := curr_point;
+                arg_min := interval[2];
+            end if;
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min", curr_min));
+
+            while j <= num_roots and evalf(roots_poly[j] < interval[1]) do
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> j @1", j));
+                j := j + 1;
+            end do;
+
+            while j <= num_roots and evalf(roots_poly[j] < interval[2]) do
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> j @2", j));
+                curr_point := subs(x=roots_poly[j], poly);
+                if evalf(curr_point <= curr_min) then
+                    curr_min := curr_point;
+                    arg_min := roots_poly[j];
+                end if;
+                j := j + 1;
+            end do;
+        end do;
+$ifdef LOG_TIME
+        END_LOG_TIME("computeMin",0)
+$endif
+        return arg_min, curr_min;
+    end proc;
 
     bound_info := proc(x, bound, eps)
 $ifdef LOG_TIME
@@ -92,34 +149,13 @@ $endif
         end if;
     end proc;
 
-    minPolyOverBasis := proc(f, basis, x);
-$ifdef LOG_TIME
-        INIT_START_LOG_TIME("minPolyOverBasis",0)
-$endif
-    local lowerbound, upperbound, interval, output;
-        output := min(
-            map(proc(bound)
-                    interval := bound_info(x, bound, 0);
-                    #lowerbound := convert(evalf(interval[1]), rational);
-                    #upperbound := convert(evalf(interval[2]), rational);
-                    lowerbound := interval[1];
-                    upperbound := interval[2];
-                    simplify(minimize(f, x = lowerbound .. upperbound))
-                end proc,
-                SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis), [x])));
-$ifdef LOG_TIME
-        END_LOG_TIME("minPolyOverBasis",0)
-$endif
-        return output;
-    end proc;
-
 # Find N such that
 # - s + N g > 0 over L1 := SemiAlgebraic([op(S), s <= 0], [x]);
-    findN := proc(s, f, t, g, basis)
+    findN := proc(s, f, t, g, basis, x)
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findN", 0)
 $endif
-    local min_s, locations, N;
+local arg_min, value_min, N;
         # This branch means that s is already strictly positive over S
         if evalb(SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
 $ifdef LOG_TIME
@@ -127,14 +163,9 @@ $ifdef LOG_TIME
 $endif
             return 0;
         else
-            min_s := minPolyOverBasis(s, basis, x);
-            locations := [RealDomain:-solve](s = min_s);
-            # If locations is empty then the equation `s = min_s` is trivial
-            if evalb(locations = []) then
-                N := ceil(-min_s/minPolyOverBasis(g, basis, x)+BUMP_FINDN);
-            else
-                N := ceil(-min_s/min(map(g, locations))+BUMP_FINDN);
-            end if;
+            local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
+            N := ceil(-subs(x = computeMin(S, s + g, x)[1], s/g));
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 $ifdef LOG_TIME
             END_LOG_TIME("findN",0)
 $endif
@@ -148,14 +179,15 @@ $endif
 # - 1 > eps*delta*f
 # - eps*t1 + s1*f > 0
 # over L2 := {}
-    findEps := proc(delta, s1, f, t1, g, basis)
+    findEps := proc(delta, s1, f, t1, g, basis, x)
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findEps",0)
 $endif
     local eps, top, bot, curr;
     local condition1, condition2, condition3;
     local _basis := map(poly -> poly >= 0, basis);
-        top := -minPolyOverBasis(-g, basis, x);
+    local S := SolveTools:-SemiAlgebraic(_basis, [x]);
+        top := -computeMin(S, -g, x)[2];
         bot := 0;
         curr := (top+bot)/2;
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Max bound for eps", top));
@@ -184,7 +216,7 @@ $endif
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findK",0)
 $endif
-    local k := 0;
+    local k := 1;
     local k_condition_1, k_condition_2;
 $ifdef LOG_TIME
         START_LOG_TIME("findK::condition_1",1)
@@ -246,19 +278,24 @@ $ifdef LOG_TIME
 $endif
 
         Algebraic:-ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> t", t));
 
-    local N := findN(s, f, t, g, basis);
+    local N := findN(s, f, t, g, basis, x);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 
     local s1 := s + N*g;
     local t1 := t - N*f;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s1", s1));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> t1", t1));
 
 # Find positive rational d \in R[x] such that
 # d*f*g < 1 on C
-    local delta := -9/10/minPolyOverBasis(-f*g, basis, x);
+    local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
+    local delta := -9/10/computeMin(S, -f*g, x)[2];
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> delta", delta));
 
-    local eps := findEps(delta, s1, f, t1, g, basis);
+    local eps := findEps(delta, s1, f, t1, g, basis, x);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
     local k := findK(eps, delta, s1, f, t1, g, basis, x);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> k", k));
