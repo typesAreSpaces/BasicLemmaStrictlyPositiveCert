@@ -1,6 +1,8 @@
 with(SolveTools, SemiAlgebraic);
 with(BasicLemma, lift):
 
+#printlevel := -1;
+
 test := proc(f, g, basis, x)
 local sigma, tau;
     sigma, tau := lift(f, g, basis, x);

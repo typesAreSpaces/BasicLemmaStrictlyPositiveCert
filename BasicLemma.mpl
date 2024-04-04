@@ -1,4 +1,4 @@
-$define ENABLE_DEBUGGING true
+$define ENABLE_DEBUGGING    false
 $define ENABLE_VERIFICATION false
 $define LOG_TIME
 $define BUMP_FINDN 1/10
@@ -31,6 +31,12 @@ export lift;
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("computeMin",0)
 $endif
+        if evalb(S = []) then
+$ifdef LOG_TIME
+            END_LOG_TIME("computeMin",0)
+$endif
+            return 0, infinity;
+        end if;
     local roots_poly := map(sol -> op(sol)[2], RootFinding:-Isolate(diff(poly, x)));
     local num_roots := nops(roots_poly);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> poly", poly));
@@ -155,7 +161,7 @@ $endif
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findN", 0)
 $endif
-local arg_min, value_min, N;
+    local arg_min, value_min, N;
         # This branch means that s is already strictly positive over S
         if evalb(SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
 $ifdef LOG_TIME
@@ -216,60 +222,56 @@ $endif
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findK",0)
 $endif
-    local k := 1;
-    local k_condition_1, k_condition_2;
+    local S;
+    local less_than_one := 999/1000;
+    local k := 0;
+    local min_value_cond_1;
+    local _arg, _value;
+    local _basis := map(poly -> poly >= 0, basis);
 $ifdef LOG_TIME
         START_LOG_TIME("findK::condition_1",1)
 $endif
-        k_condition_1 := SolveTools:-SemiAlgebraic(
-            [
-                op(map(poly -> poly >= 0, basis)),
-                g <= eps,
-                eps*t1 + s1*f <= s1*f*(1-eps*delta*f)^k
-            ], [x]) = [];
-
-        while evalb(k_condition_1) = false do
-            k := k+1;
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at first condition", k));
-            k_condition_1 := SolveTools:-SemiAlgebraic(
-                [
-                    op(map(poly -> poly >= 0, basis)),
-                    g <= eps,
-                    eps*t1 + s1*f <= s1*f*(1-eps*delta*f)^k
-                ], [x]) = [];
-        end do;
+        S := SolveTools:-SemiAlgebraic([op(_basis), g <= eps], [x]);
+        while true do
+            _arg, _value := computeMin(S, -s1*f*(1 - eps*delta*f)^k, x);
+            _value := -_value;
+            min_value_cond_1 := subs(x=_arg, eps*t1 + s1*f);
+            if evalf(_value < min_value_cond_1)  then
 $ifdef LOG_TIME
-        END_LOG_TIME("findK::condition_1",1)
+                END_LOG_TIME("findK::condition_1",1)
 $endif
+                break;
+            else
+                # Find k such that s1*f*(1-eps*delta*f)^k < eps* t1 + s1*f
+                k := ceil(
+                    ln(less_than_one *min_value_cond_1/subs(x=_arg, s1*f))
+                    /ln(subs(x=_arg, 1 - eps*delta*f)));
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at first condition", k));
+            end if;
+        end do;
 
 $ifdef LOG_TIME
         START_LOG_TIME("findK::condition_2",2)
 $endif
-        k_condition_2 := SolveTools:-SemiAlgebraic(
-            [
-                op(map(poly -> poly >= 0, basis)),
-                g >= eps,
-                1 <= s1*f*(1-eps*delta*f)^k
-            ], [x]) = [];
+        S := SolveTools:-SemiAlgebraic([op(_basis), g >= eps], [x]);
+        while true do
+            _arg, _value := computeMin(S, -s1*f*(1 - eps*delta*f)^k, x);
+            _value := -_value;
+            if evalf(_value < 1) then
+$ifdef LOG_TIME
+                END_LOG_TIME("findK::condition_2",2)
+$endif
 
-        while evalb(k_condition_2) = false do
-            k := k+1;
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at second condition", k));
-            k_condition_2 := SolveTools:-SemiAlgebraic(
-                [
-                    op(map(poly -> poly >= 0, basis)),
-                    g >= eps,
-                    1 <= s1*f*(1-eps*delta*f)^k
-                ], [x]) = [];
+$ifdef LOG_TIME
+                END_LOG_TIME("findK",0)
+$endif
+                return k;
+            else
+                # Find k such that s1*f*(1-eps*delta*f)^k < 1
+                k := ceil(ln(less_than_one/subs(x=_arg, s1*f))/ln(subs(x=_arg, 1 - eps*delta*f)));
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching k at second condition", k));
+            end if;
         end do;
-$ifdef LOG_TIME
-        END_LOG_TIME("findK::condition_2",2)
-$endif
-
-$ifdef LOG_TIME
-        END_LOG_TIME("findK",0)
-$endif
-        return k;
     end proc;
 
     lift := proc(f, g, basis, x)
