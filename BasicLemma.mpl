@@ -37,7 +37,17 @@ $ifdef LOG_TIME
 $endif
             return 0, infinity;
         end if;
-    local roots_poly := map(sol -> op(sol)[2], RootFinding:-Isolate(diff(poly, x)));
+    local roots_poly;
+    local _num, _denom := 1;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> poly", poly));
+
+        if type(poly, polynom) then
+            _num := poly;
+        elif type(poly, ratpoly) then
+            _num := numer(poly);
+            _denom := denom(poly);
+        end if;
+        roots_poly := map(sol -> op(sol)[2], RootFinding:-Isolate(_denom*diff(_num, x) - _num*diff(_denom, x)));
     local num_roots := nops(roots_poly);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> poly", poly));
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> roots_poly", roots_poly));
@@ -49,21 +59,26 @@ $endif
             interval := bound_info(x, S[i], 0);
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current interval", interval));
 
-            curr_point := subs(x=interval[1], poly);
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point", curr_point));
-            if evalf(curr_point <= curr_min) then
-                curr_min := curr_point;
-                arg_min := interval[1];
+            if not(subs(x=interval[1], _denom) = 0) then
+                curr_point := subs(x=interval[1], _num)/subs(x=interval[1], _denom);
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point left", curr_point));
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point left", evalf(curr_point)));
+                if evalf(curr_point <= curr_min) then
+                    curr_min := curr_point;
+                    arg_min := interval[1];
+                end if;
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min left", curr_min));
             end if;
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min", curr_min));
 
-            curr_point := subs(x=interval[2], poly);
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point", curr_point));
-            if evalf(curr_point <= curr_min) then
-                curr_min := curr_point;
-                arg_min := interval[2];
+            if not(subs(x=interval[2], _denom) = 0) then
+                curr_point := subs(x=interval[2], _num)/subs(x=interval[2], _denom);
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_point right", curr_point));
+                if evalf(curr_point <= curr_min) then
+                    curr_min := curr_point;
+                    arg_min := interval[2];
+                end if;
+                DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min right", curr_min));
             end if;
-            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> curr_min", curr_min));
 
             while j <= num_roots and evalf(roots_poly[j] < interval[1]) do
                 DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> j @1", j));
@@ -72,7 +87,7 @@ $endif
 
             while j <= num_roots and evalf(roots_poly[j] < interval[2]) do
                 DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> j @2", j));
-                curr_point := subs(x=roots_poly[j], poly);
+                curr_point := subs(x=roots_poly[j], _num)/subs(x=roots_poly[j], _denom);
                 if evalf(curr_point <= curr_min) then
                     curr_min := curr_point;
                     arg_min := roots_poly[j];
@@ -161,16 +176,24 @@ $endif
 $ifdef LOG_TIME
         INIT_START_LOG_TIME("findN", 0)
 $endif
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
     local arg_min, value_min, N;
+    local S := SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]);
         # This branch means that s is already strictly positive over S
-        if evalb(SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]) = []) then
+        if evalb(S = []) then
 $ifdef LOG_TIME
             END_LOG_TIME("findN",0)
 $endif
             return 0;
         else
-            local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
-            N := ceil(-subs(x = computeMin(S, s + g, x)[1], s/g));
+            #N := ceil(evalf(-subs(x = computeMin(S, s + g, x)[1], s/g)));
+            #N := convert(evalf(-subs(x = computeMin(S, s + g, x)[1], s/g)) + 1/100, rational);
+            #N := convert(evalf(-subs(x = [1], s/g)), rational);
+            N := -computeMin(S, s/g, x)[2];
+            N := convert(evalf(N), rational);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> basis", basis));
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 $ifdef LOG_TIME
             END_LOG_TIME("findN",0)
@@ -193,7 +216,7 @@ $endif
     local condition1, condition2, condition3;
     local _basis := map(poly -> poly >= 0, basis);
     local S := SolveTools:-SemiAlgebraic(_basis, [x]);
-        top := -computeMin(S, -g, x)[2];
+        top := convert(evalf(-computeMin(S, -g, x)[2]), rational);
         bot := 0;
         curr := (top+bot)/2;
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Max bound for eps", top));
@@ -294,7 +317,7 @@ $endif
 # Find positive rational d \in R[x] such that
 # d*f*g < 1 on C
     local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
-    local delta := -9/10/computeMin(S, -f*g, x)[2];
+    local delta := convert(-9/10/computeMin(S, -f*g, x)[2], rational);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> delta", delta));
 
     local eps := findEps(delta, s1, f, t1, g, basis, x);
@@ -302,7 +325,7 @@ $endif
     local k := findK(eps, delta, s1, f, t1, g, basis, x);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> k", k));
 
-    local r := s1 * delta * f * sum((1 - delta*f*g)^i, i= 0 .. (k - 1));
+    local r := s1 * delta * f * sum((1 - delta*f*g)^i, i = 0 .. (k - 1));
     local sigma := s1 - r*g;
     local tau := t1 + r*f;
 
