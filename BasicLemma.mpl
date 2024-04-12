@@ -186,10 +186,12 @@ $ifdef LOG_TIME
 $endif
             return 0;
         else
-            #N := ceil(evalf(-subs(x = computeMin(S, s + g, x)[1], s/g)));
-            #N := convert(evalf(-subs(x = computeMin(S, s + g, x)[1], s/g)) + 1/100, rational);
-            #N := convert(evalf(-subs(x = [1], s/g)), rational);
-            N := -computeMin(S, s/g, x)[2];
+            # This is because g > 0 over L1
+            # hence N + s g > 0 over L1 iff N > -s/g over L1
+            # iff N > max_{L1}(-s/g)
+            # iff N > -min_{L1}(s/g)
+            # iff N = -min_{L1}(s/g) + eps where eps > 0
+            N := -computeMin(S, s/g, x)[2] + 1/100;
             N := convert(evalf(N), rational);
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
