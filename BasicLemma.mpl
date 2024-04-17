@@ -190,11 +190,12 @@ $endif
             # hence N + s g > 0 over L1 iff N > -s/g over L1
             # iff N > max_{L1}(-s/g)
             # iff N > -min_{L1}(s/g)
-            # iff N = -min_{L1}(s/g) + eps where eps > 0
-            N := -computeMin(S, s/g, x)[2] + 1/100;
-            N := convert(evalf(N), rational);
+            # iff N = eps - min_{L1}(s/g)  where eps > 0
+            # iff N = eps*(-min_{L1}(s/g)) where eps > 1
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
+            #N := convert(1/100 + evalf(-computeMin(S, s/g, x)[2]), rational);
+            N := (1+1/100)*convert(evalf(-computeMin(S, s/g, x)[2]), rational);
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> basis", basis));
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 $ifdef LOG_TIME
@@ -233,7 +234,7 @@ $endif
             condition3 := SolveTools:-SemiAlgebraic([op(_basis), g <= curr, curr*t1+s1*f <= 0], [x]) = [];
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Searching eps", curr));
         end do;
-        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", eps));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> eps", curr));
 $ifdef LOG_TIME
         END_LOG_TIME("findEps",0)
 $endif
