@@ -179,6 +179,7 @@ $endif
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
     local arg_min, value_min, N;
     local S := SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> S", S));
         # This branch means that s is already strictly positive over S
         if evalb(S = []) then
 $ifdef LOG_TIME
@@ -321,6 +322,8 @@ $endif
 # d*f*g < 1 on C
     local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
     local delta := convert(-9/10/computeMin(S, -f*g, x)[2], rational);
+    # Debugging
+    #local delta := 1;
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> delta", delta));
 
     local eps := findEps(delta, s1, f, t1, g, basis, x);
