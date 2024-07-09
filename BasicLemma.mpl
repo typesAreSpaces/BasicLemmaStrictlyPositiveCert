@@ -332,6 +332,7 @@ $endif
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> k", k));
 
     local r := s1 * delta * f * sum((1 - delta*f*g)^i, i = 0 .. (k - 1));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> r", r));
     local sigma := s1 - r*g;
     local tau := t1 + r*f;
 

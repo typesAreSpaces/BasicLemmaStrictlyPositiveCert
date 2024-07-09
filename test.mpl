@@ -129,18 +129,17 @@ end proc;
 #basis := [t1*t2];
 #test(t1, t2, basis, x);
 
-#t1 := -(x-1)*(x-10);
-#t2 := (x-2)*(x-3);
-#basis := [t1*t2];
-#test(t1, t2, basis, x);
+t1 := -(x-1)*(x-10);
+t2 := (x-2)*(x-3);
+basis := [t1*t2];
+test(t1, t2, basis, x);
 
 #t1 := -(x+4)*(x-4)*(x-2)*(x-3);
 #t2 := (x+1)*(x-1)*(x+2)*(x+3);
 #basis := [t1*t2];
 #test(t1, t2, basis, x);
 
-t1 := (x+3)*(x+2);
-t2 := (x+1)*(x-1);
-#t2 := (x-2)*(x-3);
-basis := [-(x+4)*(x+3)*(x+2)*(x+1)*(x-1)*(x-2)*(x-3)*(x-4)];
-test(t1, t2, basis, x);
+#t1 := (x+3)*(x+2);
+#t2 := (x+1)*(x-1);
+#basis := [-(x+4)*(x+3)*(x+2)*(x+1)*(x-1)*(x-2)*(x-3)*(x-4)];
+#test(t1, t2, basis, x);
