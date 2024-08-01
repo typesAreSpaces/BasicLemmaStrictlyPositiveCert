@@ -144,8 +144,12 @@ end proc;
 #basis := [-(x+4)*(x+3)*(x+2)*(x+1)*(x-1)*(x-2)*(x-3)*(x-4)];
 #test(t1, t2, basis, x);
 
-t1 := (x-31/16);
-t2 := -(x-2)*(x-3)*(x-5);
+#t1 := (x-31/16);
+#t2 := -(x-2)*(x-3)*(x-5);
+#basis := [t1*t2];
+#test(t1, t2, basis, x);
+
+t1 := x^2;
+t2 := -(x+1)*(x-1);
 basis := [t1*t2];
 test(t1, t2, basis, x);
-
