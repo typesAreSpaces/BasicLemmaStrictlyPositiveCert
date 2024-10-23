@@ -1,4 +1,4 @@
-$define ENABLE_VERIFICATION
+#$define ENABLE_VERIFICATION
 
 with(SolveTools, SemiAlgebraic);
 with(BasicLemma, lift):
@@ -163,7 +163,42 @@ end proc;
 #p2 := (x-4)^2;
 #test(p1, p2, basis, x);
 
-t1 := -x*(x-4);
-t2 := (x-1)*(x-3);
-basis := [t1*t2];
-test(t1, t2, basis, x);
+#t1 := -x*(x-4);
+#t2 := (x-1)*(x-3);
+#basis := [t1*t2];
+#test(t1, t2, basis, x);
+
+#h2 := -(x+3)*(x-3);
+#g2 := (x+1)*(x+1/2);
+#basis := [g2*h2];
+#test(h2, g2, basis, x);
+
+#p1 := (x+1)*(x+1/2);
+#p2 := -(x+3)*(x-3);
+#basis := [p1*p2];
+#test(p1, p2, basis, x);
+
+#p1 := (x-3/4)*(x-1);
+##p2 := -(x+2)*(x+1)*x^2*(x-1/2)*(x-2);
+#p2 := -(x+2)*(x+1)^3*x^2*(x-1/22)*(x-2);
+##p2 := -(x+2)*(x-2);
+#basis := [p1*p2];
+#test(p1, p2, basis, x);
+
+#b1 := (x+3/4)*(x+1/4);
+#b2 := (x+1)*(x+7/8);
+#b3 := (x+5/8)*x^2*(x-1/2);
+#b4 := (x-3/4)*(x-1);
+#lg := (x+3);
+#rg := -(x-3);
+
+#test(lg*b2, rg*b1, [lg*b2*rg*b1], x);
+
+p1 := (x+1/4)*(x-1);
+#p2 := -(x+2)*(x+1)*x^2*(x-1/2)*(x-2);
+param1:=-99/100;
+param1:=-999/1000;
+p2 := -(x+2)*(x+1)^3*(x-param1)*(x-2);
+#p2 := -(x+2)*(x-2);
+basis := [p1*p2];
+test(p1, p2, basis, x);
