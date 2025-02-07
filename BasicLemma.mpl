@@ -1,4 +1,4 @@
-$define ENABLE_DEBUGGING    true
+$define ENABLE_DEBUGGING    false
 $define ENABLE_VERIFICATION false
 $define LOG_TIME
 $define BUMP_FINDN 1/10
