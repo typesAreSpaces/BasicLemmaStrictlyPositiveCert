@@ -37,9 +37,9 @@ end proc;
 #test(x+3, -x+3, [-(x+3)*(x-3)], x);
 
 # Terminates
-#f := x+3;
-#g := -(x+2)*(x-1)*(x-13);
-#test(f, g, [f*g], x);
+f := x+3;
+g := -(x+2)*(x-1)*(x-13);
+test(f, g, [f*g], x);
 
 # Terminates
 #basis := [-(x+3)*(x+2)*(x-2)*(x-3)*(x-13)*(x+13)];
@@ -223,32 +223,32 @@ end proc;
 #test((x+3)*(x-3), -(x+4)*(x-5), [-(x+4)*(x+3)*(x-3)*(x-5)], x);
 
 # Benchmark
-__k := 1/2;
-while evalb(__k <= 10) do
-  __poly := -1;
-  for __i from -2*__k to 2*__k do
-    if __i = 0 then
-      next;
-    end if;
-    __poly := __poly*(x-__i);
-  end do;
-  lprint(__poly);
-  __left := x + 2*__k;
-  __right := -(x - 2*__k);
+#__k := 1/2;
+#while evalb(__k <= 10) do
+  #__poly := -1;
+  #for __i from -2*__k to 2*__k do
+    #if __i = 0 then
+      #next;
+    #end if;
+    #__poly := __poly*(x-__i);
+  #end do;
+  #lprint(__poly);
+  #__left := x + 2*__k;
+  #__right := -(x - 2*__k);
 
-  __time_l := time();
-  test(__left, simplify(__poly/__left), [__poly], x);
-  __time_l :=  time() - __time_l;
+  #__time_l := time();
+  #test(__left, simplify(__poly/__left), [__poly], x);
+  #__time_l :=  time() - __time_l;
 
-  __time_r := time();
-  test(__right, simplify(__poly/__right), [__poly], x);
-  __time_r := time() - __time_r;
+  #__time_r := time();
+  #test(__right, simplify(__poly/__right), [__poly], x);
+  #__time_r := time() - __time_r;
 
-  lprint(">> Input polynomial ", __poly);
-  lprint(">> Left natural generator ", __left);
-  lprint(">> Right natural generator ", __right);
-  lprint(">> Time left natural generator: ", __time_l);
-  lprint(">> Time right natural generator: ", __time_r);
+  #lprint(">> Input polynomial ", __poly);
+  #lprint(">> Left natural generator ", __left);
+  #lprint(">> Right natural generator ", __right);
+  #lprint(">> Time left natural generator: ", __time_l);
+  #lprint(">> Time right natural generator: ", __time_r);
 
-  __k := __k + 1/2;
-end do;
+  #__k := __k + 1/2;
+#end do;

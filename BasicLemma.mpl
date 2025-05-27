@@ -188,7 +188,7 @@ $endif
             return 0;
         else
             # This is because g > 0 over L1
-            # hence N + s g > 0 over L1 iff N > -s/g over L1
+            # hence s + N g > 0 over L1 iff N > -s/g over L1
             # iff N > max_{L1}(-s/g)
             # iff N > -min_{L1}(s/g)
             # iff N = eps - min_{L1}(s/g)  where eps > 0
