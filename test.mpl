@@ -39,7 +39,7 @@ end proc;
 # Terminates
 f := x+3;
 g := -(x+2)*(x-1)*(x-13);
-test(f, g, [f*g], x);
+#test(f, g, [f*g], x);
 
 # Terminates
 #basis := [-(x+3)*(x+2)*(x-2)*(x-3)*(x-13)*(x+13)];
@@ -260,12 +260,17 @@ test(f, g, [f*g], x);
 #g := -(1/216)*(-6 + x)*(6 + x)*(79 + 41*x^2);
 #test(f, g, [f*g], x);
 
-g1 := x + 3;
-g2 := (x+2)*(x+1);
-g3 := (x-1)*(x-2);
-g4 := -(x - 3);
+#g1 := x + 3;
+#g2 := (x+2)*(x+1);
+#g3 := (x-1)*(x-2);
+#g4 := -(x - 3);
 
 #test(g1*g2*g4, g3, [g1*g2*g3*g4], x);
 #test(g1*g4, g2*g3, [g1*g2*g3*g4], x);
 
-test(g1*g4, g2, [g1*g2*g4], x);
+#test(g1*g4, g2, [g1*g2*g4], x);
+
+# This example doesnt terminate
+t1 := 13 + 7*x - 7*x^2 - 2*x^3 + x^4;
+t2 := -((-4 + x)*(1 + x));
+test(t1, t2, [t1*t2], x);

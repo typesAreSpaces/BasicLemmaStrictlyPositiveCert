@@ -179,6 +179,7 @@ $endif
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> g", g));
     local arg_min, value_min, N;
     local S := SolveTools:-SemiAlgebraic([op(map(poly -> poly >= 0, basis)), s <= 0], [x]);
+            DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> basis", basis));
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> S", S));
         # This branch means that s is already strictly positive over S
         if evalb(S = []) then
