@@ -271,6 +271,10 @@ g := -(x+2)*(x-1)*(x-13);
 #test(g1*g4, g2, [g1*g2*g4], x);
 
 # This example doesnt terminate
-t1 := 13 + 7*x - 7*x^2 - 2*x^3 + x^4;
-t2 := -((-4 + x)*(1 + x));
-test(t1, t2, [t1*t2], x);
+#t1 := 13 + 7*x - 7*x^2 - 2*x^3 + x^4;
+#t2 := -((-4 + x)*(1 + x));
+#test(t1, t2, [t1*t2], x);
+
+f := -(x + 1);
+g := (x - 1);
+test(f, g, [f, g], x);

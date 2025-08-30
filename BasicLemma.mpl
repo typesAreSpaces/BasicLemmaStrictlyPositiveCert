@@ -311,6 +311,14 @@ $endif
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> t", t));
 
+    local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
+    if evalb(S = []) then
+$ifdef LOG_TIME
+        END_LOG_TIME("lift",0)
+$endif
+      return s, t;
+    end if;
+
     local N := findN(s, f, t, g, basis, x);
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> N", N));
 
@@ -321,7 +329,6 @@ $endif
 
 # Find positive rational d \in R[x] such that
 # d*f*g < 1 on C
-    local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
     local delta := convert(-9/10/computeMin(S, -f*g, x)[2], rational);
     # Debugging
     #local delta := 1;
