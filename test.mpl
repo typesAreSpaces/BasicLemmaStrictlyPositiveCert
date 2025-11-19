@@ -325,11 +325,15 @@ g := -(x+2)*(x-1)*(x-13);
 #g2 := -(x + 3)*(x - 3);
 #test(g1, g2, [g1*g2], x);
 
-st := time();
-test((x+1), -(x-2), [-(x+1)*(x-2)], x);
-lprint(">> Time n1", time() - st);
+#st := time();
+#test((x+1), -(x-2), [-(x+1)*(x-2)], x);
+#lprint(">> Time n1", time() - st);
 
+#st := time();
+#test((x+2), -(x-1), [-(x+2)*(x-1)], x);
+#lprint(">> Time n2", time() - st);
 
-st := time();
-test((x+2), -(x-1), [-(x+2)*(x-1)], x);
-lprint(">> Time n2", time() - st);
+#test((x+1), -(x-2), [-(x+1)*(x-2)], x);
+#test(x*(x-1), -(x+1)*(x-2), [-(x+1)*x*(x-1)*(x-2)], x);
+
+test((x+1), -(x-1)^3, [-(x+1)*(x-1)^3], x);
