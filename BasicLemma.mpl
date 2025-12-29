@@ -310,6 +310,7 @@ $endif
         Algebraic:-ExtendedEuclideanAlgorithm(f, g, x, 's', 't');
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> s", s));
         DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> t", t));
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> basis", basis));
 
     local S := SolveTools:-SemiAlgebraic(map(poly -> poly >= 0, basis));
     if evalb(S = []) then
