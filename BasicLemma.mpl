@@ -55,6 +55,7 @@ $endif
     local curr_min := infinity, arg_min;
     local i, j := 1;
     local interval;
+        DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> S", S));
         for i from 1 to nops(S) do
             interval := bound_info(x, S[i], 0);
             DEBUG(__FILE__, __LINE__, ENABLE_DEBUGGING, lprint(">> Current interval", interval));
